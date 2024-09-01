@@ -65,7 +65,7 @@ jobs:
           git config --global user.email "actions@github.com"
           git add dizipal.json
           git commit -m "Update current site URL to $NEW_URL"
-          git push origin HEAD:update-url
+          git push https://x-access-token:${{ secrets.MY_SECRET }}@github.com/dizipaltv/api.git HEAD:update-url
           
           gh pr create --title "Update current site URL" --body "Updated the current site URL to $NEW_URL." --base main --head update-url
         env:
