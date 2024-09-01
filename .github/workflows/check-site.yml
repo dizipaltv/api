@@ -1,0 +1,25 @@
+name: Check Dizipal URL
+run-name: ${{ github.actor }} is looking for the current Dizipal address.
+on: [push]
+
+jobs:
+  url-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Dizipal URLs
+        run: |
+          base_url="https://dizipal"
+          number=738
+          while true; do
+            current_url="${base_url}${number}.com"
+            echo "Checking ${current_url}"
+            status_code=$(curl -o /dev/null -s -w "%{http_code}" "${current_url}")
+            
+            if [ "$status_code" -eq 200 ]; then
+              echo "✅ Found a live site at ${current_url} with status code ${status_code}"
+              break
+            else
+              echo "❌ ${current_url} is not accessible (status code: ${status_code})"
+              ((number++))
+            fi
+          done
