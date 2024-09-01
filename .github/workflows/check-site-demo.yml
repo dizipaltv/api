@@ -15,13 +15,26 @@ jobs:
       - name: Read current site URL from JSON
         id: read_json
         run: |
-          # Okuma işlemi
+          # JSON dosyasından mevcut site URL'sini oku
           current_url=$(jq -r '.currentSiteURL' dizipal.json)
           echo "Current site URL is: $current_url"
           echo "CURRENT_URL=$current_url" >> $GITHUB_ENV
 
-      - name: Check if URL is accessible
-        id: check_url
+      - name: Check if current site URL is accessible
+        id: check_current_url
+        run: |
+          status_code=$(curl -o /dev/null -s -w "%{http_code}" "$CURRENT_URL")
+          if [ "$status_code" -eq 200 ]; then
+            echo "✅ The current site URL $CURRENT_URL is accessible (status code: $status_code)"
+            echo "SITE_ACCESSIBLE=true" >> $GITHUB_ENV
+          else
+            echo "❌ The current site URL $CURRENT_URL is not accessible (status code: $status_code)"
+            echo "SITE_ACCESSIBLE=false" >> $GITHUB_ENV
+          fi
+
+      - name: Determine new URL if current site URL is not accessible
+        id: determine_new_url
+        if: env.SITE_ACCESSIBLE == 'false'
         run: |
           base_url=$(echo $CURRENT_URL | sed 's/https:\/\/dizipal//')
           number=$(echo $base_url | sed 's/.com//')
@@ -41,13 +54,13 @@ jobs:
           done
 
       - name: Update JSON with new URL
-        if: env.NEW_URL != ''
+        if: env.SITE_ACCESSIBLE == 'false' && env.NEW_URL != ''
         run: |
           jq --arg new_url "$NEW_URL" '.currentSiteURL = $new_url' dizipal.json > dizipal_tmp.json
           mv dizipal_tmp.json dizipal.json
 
       - name: Commit and create a PR if updated
-        if: env.NEW_URL != ''
+        if: env.SITE_ACCESSIBLE == 'false' && env.NEW_URL != ''
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
