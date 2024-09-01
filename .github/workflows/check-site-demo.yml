@@ -11,11 +11,10 @@ jobs:
         
       - name: Install dependencies
         run: sudo apt-get install jq curl git
-      
+
       - name: Read current site URL from JSON
         id: read_json
         run: |
-          # JSON dosyasından mevcut site URL'sini oku
           current_url=$(jq -r '.currentSiteURL' dizipal.json)
           echo "Current site URL is: $current_url"
           echo "CURRENT_URL=$current_url" >> $GITHUB_ENV
@@ -23,7 +22,7 @@ jobs:
       - name: Check if current site URL is accessible
         id: check_current_url
         run: |
-          status_code=$(curl -o /dev/null -s -w "%{http_code}" "$CURRENT_URL")
+          status_code=$(curl -L -o /dev/null -s -w "%{http_code}" "$CURRENT_URL")
           if [ "$status_code" -eq 200 ]; then
             echo "✅ The current site URL $CURRENT_URL is accessible (status code: $status_code)"
             echo "SITE_ACCESSIBLE=true" >> $GITHUB_ENV
@@ -41,7 +40,7 @@ jobs:
           while true; do
             current_url="https://dizipal${number}.com"
             echo "Checking ${current_url}"
-            status_code=$(curl -o /dev/null -s -w "%{http_code}" "${current_url}")
+            status_code=$(curl -L -o /dev/null -s -w "%{http_code}" "${current_url}")
             
             if [ "$status_code" -eq 200 ]; then
               echo "✅ Found a live site at ${current_url} with status code ${status_code}"
