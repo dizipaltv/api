@@ -1,0 +1,60 @@
+name: Check Dizipal URL
+run-name: Check Dizipal Current URL DEMO
+on: [push]
+
+jobs:
+  url-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Install dependencies
+        run: sudo apt-get install jq curl git
+      
+      - name: Read current site URL from JSON
+        id: read_json
+        run: |
+          # Okuma işlemi
+          current_url=$(jq -r '.currentSiteURL' dizipal.json)
+          echo "Current site URL is: $current_url"
+          echo "CURRENT_URL=$current_url" >> $GITHUB_ENV
+
+      - name: Check if URL is accessible
+        id: check_url
+        run: |
+          base_url=$(echo $CURRENT_URL | sed 's/https:\/\/dizipal//')
+          number=$(echo $base_url | sed 's/.com//')
+          while true; do
+            current_url="https://dizipal${number}.com"
+            echo "Checking ${current_url}"
+            status_code=$(curl -o /dev/null -s -w "%{http_code}" "${current_url}")
+            
+            if [ "$status_code" -eq 200 ]; then
+              echo "✅ Found a live site at ${current_url} with status code ${status_code}"
+              echo "NEW_URL=${current_url}" >> $GITHUB_ENV
+              break
+            else
+              echo "❌ ${current_url} is not accessible (status code: ${status_code})"
+              ((number++))
+            fi
+          done
+
+      - name: Update JSON with new URL
+        if: env.NEW_URL != ''
+        run: |
+          jq --arg new_url "$NEW_URL" '.currentSiteURL = $new_url' dizipal.json > dizipal_tmp.json
+          mv dizipal_tmp.json dizipal.json
+
+      - name: Commit and create a PR if updated
+        if: env.NEW_URL != ''
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add dizipal.json
+          git commit -m "Update current site URL to $NEW_URL"
+          git push origin HEAD:update-url
+          
+          gh pr create --title "Update current site URL" --body "Updated the current site URL to $NEW_URL." --base main --head update-url
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
