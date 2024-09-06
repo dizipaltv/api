@@ -1,0 +1,44 @@
+name: Test Dizipal CLI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Check if Node.js is installed and install if missing
+        run: |
+          if ! command -v node &> /dev/null; then
+            echo "Node.js is not installed. Installing..."
+            # Install Node.js using setup-node action
+            echo "Using actions/setup-node to install Node.js 20.x"
+            echo "node-version: '20'" >> $GITHUB_ENV
+            echo "Adding Node.js to the PATH..."
+          else
+            echo "Node.js is already installed"
+            node --version
+          fi
+
+      - name: Install Dizipal CLI
+        run: npm install -g dizipal-cli
+
+      - name: Run Dizipal CLI and set DIZIPAL environment variable
+        run: |
+          export DIZIPAL=$(dizipal find -u https://dizipal732.com)
+          echo "DIZIPAL=$DIZIPAL" >> $GITHUB_ENV
+
+      - name: Modify JSON file
+        run: |
+          jq --arg value "$DIZIPAL" '.currentSiteURL = $value' test-api.json > temp.json
+          mv temp.json test-api.json
+
+      - name: Verify JSON content
+        run: cat test-api.json
