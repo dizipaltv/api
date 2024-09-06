@@ -11,13 +11,14 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Check if Node.js is installed and install if missing
+        id: check_node
         run: |
           if ! command -v node &> /dev/null; then
             echo "Node.js is not installed. Installing..."
             # Install Node.js using setup-node action
-            echo "Using actions/setup-node to install Node.js 20.x"
             echo "node-version: '20'" >> $GITHUB_ENV
-            echo "Adding Node.js to the PATH..."
+            echo "Using actions/setup-node to install Node.js 20.x"
+            actions/setup-node@v3
           else
             echo "Node.js is already installed"
             node --version
@@ -25,11 +26,12 @@ jobs:
 
       - name: Install Dizipal CLI
         run: npm install -g dizipal-cli
-    
+
       - name: Run Dizipal CLI
         run: dizipal find --latest
 
       - name: Check if DIZIPAL environment variable is set
+        id: check_env
         run: |
           if [ -z "$DIZIPAL" ]; then
             echo "DIZIPAL environment variable is not set. Skipping JSON modification."
@@ -40,11 +42,11 @@ jobs:
           fi
 
       - name: Modify JSON file
-        if: env.DIZIPAL != ''
+        if: steps.check_env.outputs.DIZIPAL != ''
         run: |
           jq --arg value "$DIZIPAL" '.currentSiteURL = $value' test-api.json > temp.json
           mv temp.json test-api.json
 
       - name: Verify JSON content
-        if: env.DIZIPAL != ''
+        if: steps.check_env.outputs.DIZIPAL != ''
         run: cat test-api.json
