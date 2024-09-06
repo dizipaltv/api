@@ -1,10 +1,6 @@
 name: Test Dizipal CLI
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
+on: [push]
 
 jobs:
   test:
@@ -30,14 +26,22 @@ jobs:
       - name: Install Dizipal CLI
         run: npm install -g dizipal-cli
 
-      - name: Run Dizipal CLI and set DIZIPAL environment variable
+      - name: Check if DIZIPAL environment variable is set
         run: |
-          echo "DIZIPAL=$DIZIPAL" >> $GITHUB_ENV
+          if [ -z "$DIZIPAL" ]; then
+            echo "DIZIPAL environment variable is not set. Skipping JSON modification."
+            exit 0
+          else
+            echo "DIZIPAL environment variable is set to: $DIZIPAL"
+            echo "DIZIPAL=$DIZIPAL" >> $GITHUB_ENV
+          fi
 
       - name: Modify JSON file
+        if: env.DIZIPAL != ''
         run: |
           jq --arg value "$DIZIPAL" '.currentSiteURL = $value' test-api.json > temp.json
           mv temp.json test-api.json
 
       - name: Verify JSON content
+        if: env.DIZIPAL != ''
         run: cat test-api.json
