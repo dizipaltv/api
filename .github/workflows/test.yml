@@ -32,7 +32,6 @@ jobs:
 
       - name: Run Dizipal CLI and set DIZIPAL environment variable
         run: |
-          export DIZIPAL=$(dizipal find -u https://dizipal732.com)
           echo "DIZIPAL=$DIZIPAL" >> $GITHUB_ENV
 
       - name: Modify JSON file
