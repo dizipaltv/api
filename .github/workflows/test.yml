@@ -27,7 +27,7 @@ jobs:
         run: npm install -g dizipal-cli
     
       - name: Run Dizipal CLI
-        run: dizipal find -u https://dizipal735.com
+        run: dizipal find --latest
 
       - name: Check if DIZIPAL environment variable is set
         run: |
